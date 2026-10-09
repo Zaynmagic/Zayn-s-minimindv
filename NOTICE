@@ -1,0 +1,16 @@
+Zayn's MiniMind-V
+
+This project contains adapted code and tokenizer assets from:
+- MiniMind by jingyaogong and contributors:
+  https://github.com/jingyaogong/minimind
+- MiniMind-V by jingyaogong and contributors:
+  https://github.com/jingyaogong/minimind-v
+  Source snapshot: 1862b633fc082a723e78dbead9777545f09d960c
+
+The upstream projects are licensed under Apache-2.0; see LICENSE.
+Modifications in 2026 include a consolidated training pipeline, a wider
+vision projector, validated image spans, vectorized feature insertion,
+English documentation, and self-contained exports with frozen vision weights.
+The original tokenizer vocabulary and token IDs are retained for checkpoint
+compatibility. Pretrained vision weights are downloaded separately and are
+not distributed in this repository.

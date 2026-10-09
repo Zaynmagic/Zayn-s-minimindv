@@ -1,0 +1,4 @@
+{"image": "images/red.png", "conversations": [{"role": "user", "content": "<image>\nDescribe the color."}, {"role": "assistant", "content": "The square is red."}]}
+{"image": "images/green.png", "conversations": [{"role": "user", "content": "<image>\nDescribe the color."}, {"role": "assistant", "content": "The square is green."}]}
+{"image": "images/blue.png", "conversations": [{"role": "user", "content": "<image>\nDescribe the color."}, {"role": "assistant", "content": "The square is blue."}]}
+{"image": "images/yellow.png", "conversations": [{"role": "user", "content": "<image>\nDescribe the color."}, {"role": "assistant", "content": "The square is yellow."}]}

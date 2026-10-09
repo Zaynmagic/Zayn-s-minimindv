@@ -28,7 +28,9 @@ def generate(path):
             }
         )
     for stage in ("align", "sft"):
-        (path / f"{stage}.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+        (path / f"{stage}.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows)
+        )
 
 
 if __name__ == "__main__":

@@ -1,38 +1,43 @@
-# Zayn's MiniMind-V
+# MiniMind-V
 
-A compact implementation of single-image language-model training, adapted from [MiniMind-V](https://github.com/jingyaogong/minimind-v) and [MiniMind](https://github.com/jingyaogong/minimind). It combines a MiniMind language model, a frozen SigLIP vision encoder, and a LayerNorm/MLP projector. See [NOTICE](NOTICE) and [LICENSE](LICENSE) for attribution.
+**Vision-language model · PyTorch · SigLIP2**
 
-The implementation uses a wider projector, validates one contiguous image span per example, inserts image features with batched tensor operations, and masks image/padding positions from language loss. Exports bundle the vision weights and processor. The language model shares its parameter layout with [Zayn's MiniMind](https://github.com/Zaynmagic/Zayn-s-minimind).
+A single-image VLM combining [MiniMind](https://github.com/Zaynmagic/Zayn-s-minimind) with a frozen SigLIP2 encoder and a two-layer MLP projector. The full configuration has **67.1M parameters in the language model and projector** (63.9M + 3.15M). The frozen vision encoder adds 94.6M parameters and is counted separately.
 
-## Setup and quick run
+## Project overview
 
-Use Python 3.10 or newer. Install PyTorch for your hardware, then:
+| Area | What is implemented | Code |
+| --- | --- | --- |
+| Vision-language architecture | Frozen SigLIP2 features, a 768 → 2048 → 768 projector, and the MiniMind decoder | [Vision-language model](model/model_vlm.py), [full config](configs/64m.json) |
+| Two-stage training | Projector alignment with a frozen LLM, followed by instruction tuning of the LLM and projector | [Stage configuration and training](training/run.py), [image/chat preprocessing](training/data.py) |
+| Training and inference | AMP, gradient accumulation, DDP, KV caching, and PyTorch SDPA attention | [Training loop](training/run.py), [attention and decoding](model/model_minimind.py) |
+| Model delivery | Gradio image/question demo, CLI inference, and self-contained Hugging Face exports | [Gradio demo](demo.py), [CLI](inference.py), [export](training/run.py) |
+
+This version uses a wider projector, requires one contiguous image span per example, and keeps the vision encoder frozen in both stages. Exports bundle the encoder, processor, tokenizer, and model code so they can be moved without local path dependencies. PyTorch SDPA can use FlashAttention on supported CUDA setups.
+
+Architecture and tokenizer foundations are adapted from [MiniMind-V](https://github.com/jingyaogong/minimind-v) and [MiniMind](https://github.com/jingyaogong/minimind). See [NOTICE](NOTICE) and [LICENSE](LICENSE).
+
+## Setup
+
+Python 3.10+. Install PyTorch for your hardware, then:
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 python -m pytest -q
 python -m training.run --allow-random-llm --allow-random-vision --steps 6
 ```
 
-The included colored-square fixtures and random tiny model check the training pipeline; they do not produce a useful vision assistant. Recreate fixtures with `python -m training.fixtures`.
+The default tiny model and colored-square data are only for checking the pipeline. Runs save `align.pt`, `sft.pt`, `metrics.json`, and a portable Hugging Face export under `runs/smoke/hf/`. For training without tests, install `requirements.txt` instead.
 
-To use the tiny language checkpoint produced by the companion repository, place both checkouts side by side:
+## Training
 
-```bash
-python -m training.run --llm-checkpoint ../Zayn-s-minimind/runs/smoke/sft.pt --allow-random-vision --steps 8
-```
-
-Alignment trains only the projector. SFT trains the language model and projector. The vision encoder stays frozen and in evaluation mode during both stages. Each run verifies that frozen weights did not change and that the projector updated.
-
-## Training on your data
-
-Create `align.jsonl` and `sft.jsonl` in a data directory. Image paths are relative to that directory. Each record contains one image and starts with a user message containing one `<image>` placeholder:
+The data directory needs `align.jsonl`, `sft.jsonl`, and their images. Each row starts with a user message containing one `<image>` placeholder; image paths are relative to the JSONL file:
 
 ```json
 {"image":"images/example.jpg","conversations":[{"role":"user","content":"<image> Describe the scene."},{"role":"assistant","content":"A dog running across grass."}]}
 ```
 
-Use a pretrained SigLIP checkpoint and a matching language-model checkpoint for a full run:
+Use a matching checkpoint from [Zayn's MiniMind](https://github.com/Zaynmagic/Zayn-s-minimind) and a pretrained vision encoder:
 
 ```bash
 python -m training.run \
@@ -45,9 +50,9 @@ python -m training.run \
   --precision bf16 --output runs/full
 ```
 
-`--steps` counts microbatches per stage; `--accumulation` groups them into optimizer updates. Increase `--length` if the image span or assistant response is truncated. Choose `--stages align` or `--stages sft` to run a single stage. BF16 requires hardware support; FP16 requires CUDA. Random vision/language initialization requires the explicit flags shown in the quick run.
+`--steps` counts microbatches per stage; `--accumulation` groups them into optimizer updates. `--stages align` or `--stages sft` selects one stage. Increase `--length` if image tokens or assistant targets are truncated. BF16 needs hardware support; FP16 requires CUDA.
 
-CPU/CUDA distributed training uses `torchrun`:
+For a tiny companion checkpoint, use `--llm-checkpoint ../Zayn-s-minimind/runs/smoke/sft.pt --allow-random-vision` with the default config. Two-process CPU training:
 
 ```bash
 python -m torch.distributed.run --standalone --nproc_per_node=2 \
@@ -55,15 +60,22 @@ python -m torch.distributed.run --standalone --nproc_per_node=2 \
   --steps 3 --accumulation 2 --output runs/ddp-check
 ```
 
-## Inference and exports
-
-Runs write stage checkpoints, `metrics.json`, and a self-contained Hugging Face export under `hf/`. Run a local image question with:
+## Inference
 
 ```bash
 python inference.py --model runs/smoke/hf \
   --image data/synthetic/images/red.png --question "What color is the square?"
 ```
 
-The export includes custom Python code; load only exports you trust. The CLI uses greedy cached decoding and supports `--device cuda`. Model assets retain the original tokenizer IDs for compatibility. Checkpoints and generated outputs stay outside version control.
+The CLI uses greedy decoding. Add `--device cuda` for GPU inference or `--max-new-tokens 128` to change the output limit. Exports include the vision weights, processor, tokenizer, and custom model code, so load only exports you trust.
 
-Tests cover frozen training stages, image-dependent outputs, input validation, loss masking, cached decoding, and export/reload. CI also runs CPU smoke training and two-process DDP. These are correctness checks; full-corpus quality and GPU performance require separate training and evaluation.
+## Gradio demo
+
+The browser demo uses the same prediction path as the CLI. Install its optional dependencies and point it at a trained export:
+
+```bash
+python -m pip install -r requirements-demo.txt
+python demo.py --model runs/smoke/hf --port 7860
+```
+
+Open `http://127.0.0.1:7860`. The demo stays local; add `--device cuda` for GPU inference. Tiny smoke checkpoints only check that the interface works.

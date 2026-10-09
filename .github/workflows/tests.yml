@@ -1,15 +1,41 @@
 name: CPU checks
+
 on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
 jobs:
   cpu:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OMP_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+      HF_HUB_OFFLINE: '1'
+      GRADIO_ANALYTICS_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install 'torch==2.8.0' --index-url https://download.pytorch.org/whl/cpu
-      - run: python -m pip install -r requirements.txt
-      - run: python -m pytest -q
-      - run: python -m training.run --steps 2 --allow-random-llm --allow-random-vision --output runs/ci
-      - run: python -m torch.distributed.run --standalone --nproc_per_node=2 -m training.run --allow-random-llm --allow-random-vision --steps 3 --accumulation 2 --output runs/ci-ddp
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements-demo.txt
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install 'torch==2.8.0' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-dev.txt -r requirements-demo.txt
+      - name: Run unit tests
+        run: python -m pytest -q
+      - name: Check alignment and fine-tuning
+        run: >-
+          python -m training.run --steps 2 --allow-random-llm
+          --allow-random-vision --output runs/ci
+      - name: Check distributed training
+        run: >-
+          python -m torch.distributed.run --standalone --nproc_per_node=2
+          -m training.run --allow-random-llm --allow-random-vision
+          --steps 3 --accumulation 2 --output runs/ci-ddp

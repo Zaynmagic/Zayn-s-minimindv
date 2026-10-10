@@ -12,6 +12,10 @@ A single-image VLM combining [MiniMind](https://github.com/Zaynmagic/Zayn-s-mini
 
 **Synthetic pipeline demo:** the 0.57M-parameter tiny configuration, fitted to four colored-square training images with a randomly initialized, frozen vision encoder. These are actual model responses; they demonstrate the image-to-answer pipeline, not the full model's ability on real-world images.
 
+![MiniMind-V Gradio demo: a red-square training image, the question "Describe the color", and the model response "The square is red."](docs/assets/gradio-demo.jpg)
+
+Live Gradio response from the tiny fixture model described above.
+
 | Image | Question | Actual answer |
 | --- | --- | --- |
 | <img src="data/synthetic/images/red.png" alt="Red training square" width="64"> | Describe the color. | The square is red. |

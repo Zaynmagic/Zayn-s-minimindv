@@ -64,21 +64,24 @@
         "question": "Describe the color.",
         "answer": "The square is red.",
         "target": "The square is red.",
-        "exact_match": true
+        "exact_match": true,
+        "cli_command": "python inference.py --model runs/portfolio-demo/hf --image data/synthetic/images/red.png --question \"Describe the color.\" --max-new-tokens 32 --device cpu"
       },
       {
         "image": "data/synthetic/images/green.png",
         "question": "Describe the color.",
         "answer": "The square is green.",
         "target": "The square is green.",
-        "exact_match": true
+        "exact_match": true,
+        "cli_command": "python inference.py --model runs/portfolio-demo/hf --image data/synthetic/images/green.png --question \"Describe the color.\" --max-new-tokens 32 --device cpu"
       },
       {
         "image": "data/synthetic/images/blue.png",
         "question": "Describe the color.",
         "answer": "The square is blue.",
         "target": "The square is blue.",
-        "exact_match": true
+        "exact_match": true,
+        "cli_command": "python inference.py --model runs/portfolio-demo/hf --image data/synthetic/images/blue.png --question \"Describe the color.\" --max-new-tokens 32 --device cpu"
       },
       {
         "image": "data/synthetic/images/yellow.png",

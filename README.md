@@ -1,39 +1,54 @@
-# MiniMind-V
+[![CI](https://img.shields.io/github/actions/workflow/status/Zaynmagic/Zayn-s-minimindv/tests.yml?branch=main&label=CI)](https://github.com/Zaynmagic/Zayn-s-minimindv/actions/workflows/tests.yml) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](requirements.txt)
 
-[![CI](https://github.com/Zaynmagic/Zayn-s-minimindv/actions/workflows/tests.yml/badge.svg)](https://github.com/Zaynmagic/Zayn-s-minimindv/actions/workflows/tests.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](requirements.txt)
+# MiniMind-V
 
 **Vision-language model · PyTorch · SigLIP2**
 
 A single-image VLM combining [MiniMind](https://github.com/Zaynmagic/Zayn-s-minimind) with a frozen SigLIP2 encoder and a two-layer MLP projector. The full configuration has **67.1M parameters in the language model and projector** (63.9M + 3.15M). The frozen vision encoder adds 94.6M parameters and is counted separately.
 
-## Demo and example
+## Gradio demo
 
-**Synthetic pipeline demo:** the 0.57M-parameter tiny configuration, fitted to four colored-square training images with a randomly initialized, frozen vision encoder. These are actual model responses; they demonstrate the image-to-answer pipeline, not the full model's ability on real-world images.
+**Synthetic pipeline demo:** [the tiny configuration](configs/tiny.json) has 571,232 parameters and uses a randomly initialized, frozen vision encoder. The checkpoint at `runs/portfolio-demo/hf` was fitted to four colored-square training images; it demonstrates the image-to-answer pipeline, not the full 67.1M configuration's quality on real-world images.
 
 ![MiniMind-V Gradio demo: a red-square training image, the question "Describe the color", and the model response "The square is red."](docs/assets/gradio-demo.jpg)
 
-Live Gradio response from the tiny fixture model described above.
+*Local Gradio capture: the tiny fixture model answering "Describe the color" about the red training square.*
+
+The browser demo and CLI share the same prediction function. [Reproduction commands](#evaluation) below generate the checkpoint and launch the local interface.
+
+## Example outputs
+
+Actual greedy responses from `inference.py` using the same tiny checkpoint. All three images are training fixtures.
 
 | Image | Question | Actual answer |
 | --- | --- | --- |
 | <img src="data/synthetic/images/red.png" alt="Red training square" width="64"> | Describe the color. | The square is red. |
+| <img src="data/synthetic/images/green.png" alt="Green training square" width="64"> | Describe the color. | The square is green. |
+| <img src="data/synthetic/images/blue.png" alt="Blue training square" width="64"> | Describe the color. | The square is blue. |
+
+```bash
+python inference.py --model runs/portfolio-demo/hf \
+  --image data/synthetic/images/red.png --question "Describe the color." \
+  --max-new-tokens 32 --device cpu
+```
+
+## Evaluation
 
 | Tiny-model check (training fixtures) | Result |
 | --- | ---: |
-| Answers matched | 4 / 4 |
-| Assistant-token loss | 0.005722 |
+| Assistant-token cross-entropy | 0.005722 |
 | Assistant-token perplexity | 1.005739 |
+| Answers matched | 4 / 4 |
 
-Measured across 50 supervised tokens after 400 alignment and 400 SFT updates on CPU. All four images were used for training, so these are **in-sample checks**, not a held-out VQA benchmark. [All four outputs and run details](docs/demo-results.json).
+Evaluated after training across 50 supervised assistant tokens, following 400 alignment and 400 SFT updates on CPU. All four images were used for training, so these are **in-sample checks**, not a held-out VQA benchmark. [All four outputs, CLI commands, and run details](docs/demo-results.json).
 
 <details>
 <summary>Reproduce the demo and measurements on CPU</summary>
 
 ```bash
 python -m pip install -r requirements-demo.txt
-python -m training.run --allow-random-llm --allow-random-vision \
+python -m training.run --config configs/tiny.json \
+  --allow-random-llm --allow-random-vision \
   --steps 400 --batch-size 4 --length 64 --lr 0.001 --seed 42 \
   --device cpu --output runs/portfolio-demo
 python -m examples.evaluate_fixture --model runs/portfolio-demo/hf \
@@ -41,7 +56,7 @@ python -m examples.evaluate_fixture --model runs/portfolio-demo/hf \
 python demo.py --model runs/portfolio-demo/hf --port 7860
 ```
 
-Open `http://127.0.0.1:7860`, upload `data/synthetic/images/red.png`, and ask `Describe the color.` Weights are generated locally; numerical results can vary slightly across environments.
+Open `http://127.0.0.1:7860`, upload `data/synthetic/images/red.png`, and ask `Describe the color.` The demo stays local; add `--device cuda` to its launch command for GPU inference. Weights are generated locally; numerical results can vary slightly across environments.
 
 </details>
 
@@ -109,14 +124,3 @@ python inference.py --model runs/smoke/hf \
 ```
 
 The CLI uses greedy decoding. Add `--device cuda` for GPU inference or `--max-new-tokens 128` to change the output limit. Exports include the vision weights, processor, tokenizer, and custom model code, so load only exports you trust.
-
-## Gradio demo
-
-The browser demo uses the same prediction path as the CLI. Install its optional dependencies and point it at a trained export:
-
-```bash
-python -m pip install -r requirements-demo.txt
-python demo.py --model runs/smoke/hf --port 7860
-```
-
-Open `http://127.0.0.1:7860`. The demo stays local; add `--device cuda` for GPU inference. Tiny smoke checkpoints only check that the interface works.

@@ -1,0 +1,92 @@
+{
+  "description": "Reproducible synthetic demo: tiny model deliberately fitted to four training images. These numbers measure pipeline behavior, not general vision-language quality.",
+  "source_commit": "ab58c4808313e85a7c8a1259ae763bc2be193bf7",
+  "started_utc": "2026-10-10T03:02:33.430973+00:00",
+  "training": {
+    "command": "python -m training.run --allow-random-llm --allow-random-vision --steps 400 --batch-size 4 --length 64 --lr 0.001 --seed 42 --device cpu --output runs/portfolio-demo",
+    "config": "configs/tiny.json",
+    "config_sha256": "07900c4a4830e42e0261e08e04aec084093bc64d15c3dba718af42ea7399e7de",
+    "seed": 42,
+    "steps_per_stage": 400,
+    "batch_size": 4,
+    "sequence_length": 64,
+    "learning_rate": 0.001,
+    "language_initialization": "random",
+    "vision_initialization": "random and frozen",
+    "stages": [
+      {
+        "stage": "align",
+        "vision_unchanged": true,
+        "language_unchanged": true,
+        "projector_changed": true,
+        "data_sha256": "df067f0ea8908bbded2fc643ba84cb5179266de7abc91a9c38cca82525375fa9",
+        "first_batch_loss": 8.628958702087402,
+        "last_batch_loss": 8.40434741973877
+      },
+      {
+        "stage": "sft",
+        "vision_unchanged": true,
+        "language_unchanged": false,
+        "projector_changed": true,
+        "data_sha256": "df067f0ea8908bbded2fc643ba84cb5179266de7abc91a9c38cca82525375fa9",
+        "first_batch_loss": 8.404354095458984,
+        "last_batch_loss": 0.005747683811932802
+      }
+    ]
+  },
+  "evaluation_command": "python -m examples.evaluate_fixture --model runs/portfolio-demo/hf --output runs/portfolio-demo/evaluation.json",
+  "demo_command": "python demo.py --model runs/portfolio-demo/hf --port 7860",
+  "environment": {
+    "python": "3.11.0",
+    "torch": "2.8.0",
+    "transformers": "4.57.6",
+    "pillow": "11.3.0"
+  },
+  "evaluation": {
+    "scope": "In-sample check on four colored-square training fixtures; not a held-out VQA evaluation.",
+    "parameters": 571232,
+    "checkpoint_sha256": "10c841bc7f41ab6024d4e1bbceef0135f08d4cfe6ff709bde2748da0ac2910ee",
+    "data_sha256": "df067f0ea8908bbded2fc643ba84cb5179266de7abc91a9c38cca82525375fa9",
+    "device": "cpu",
+    "precision": "fp32",
+    "decoding": {
+      "do_sample": false,
+      "max_new_tokens": 32
+    },
+    "assistant_tokens": 50,
+    "assistant_token_cross_entropy": 0.005722169764339924,
+    "assistant_token_perplexity": 1.0057385726495192,
+    "exact_matches": 4,
+    "example_count": 4,
+    "examples": [
+      {
+        "image": "data/synthetic/images/red.png",
+        "question": "Describe the color.",
+        "answer": "The square is red.",
+        "target": "The square is red.",
+        "exact_match": true
+      },
+      {
+        "image": "data/synthetic/images/green.png",
+        "question": "Describe the color.",
+        "answer": "The square is green.",
+        "target": "The square is green.",
+        "exact_match": true
+      },
+      {
+        "image": "data/synthetic/images/blue.png",
+        "question": "Describe the color.",
+        "answer": "The square is blue.",
+        "target": "The square is blue.",
+        "exact_match": true
+      },
+      {
+        "image": "data/synthetic/images/yellow.png",
+        "question": "Describe the color.",
+        "answer": "The square is yellow.",
+        "target": "The square is yellow.",
+        "exact_match": true
+      }
+    ]
+  }
+}

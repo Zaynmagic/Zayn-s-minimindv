@@ -1,8 +1,45 @@
 # MiniMind-V
 
+[![CI](https://github.com/Zaynmagic/Zayn-s-minimindv/actions/workflows/tests.yml/badge.svg)](https://github.com/Zaynmagic/Zayn-s-minimindv/actions/workflows/tests.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](requirements.txt)
+
 **Vision-language model · PyTorch · SigLIP2**
 
 A single-image VLM combining [MiniMind](https://github.com/Zaynmagic/Zayn-s-minimind) with a frozen SigLIP2 encoder and a two-layer MLP projector. The full configuration has **67.1M parameters in the language model and projector** (63.9M + 3.15M). The frozen vision encoder adds 94.6M parameters and is counted separately.
+
+## Demo and example
+
+**Synthetic pipeline demo:** the 0.57M-parameter tiny configuration, fitted to four colored-square training images with a randomly initialized, frozen vision encoder. These are actual model responses; they demonstrate the image-to-answer pipeline, not the full model's ability on real-world images.
+
+| Image | Question | Actual answer |
+| --- | --- | --- |
+| <img src="data/synthetic/images/red.png" alt="Red training square" width="64"> | Describe the color. | The square is red. |
+
+| Tiny-model check (training fixtures) | Result |
+| --- | ---: |
+| Answers matched | 4 / 4 |
+| Assistant-token loss | 0.005722 |
+| Assistant-token perplexity | 1.005739 |
+
+Measured across 50 supervised tokens after 400 alignment and 400 SFT updates on CPU. All four images were used for training, so these are **in-sample checks**, not a held-out VQA benchmark. [All four outputs and run details](docs/demo-results.json).
+
+<details>
+<summary>Reproduce the demo and measurements on CPU</summary>
+
+```bash
+python -m pip install -r requirements-demo.txt
+python -m training.run --allow-random-llm --allow-random-vision \
+  --steps 400 --batch-size 4 --length 64 --lr 0.001 --seed 42 \
+  --device cpu --output runs/portfolio-demo
+python -m examples.evaluate_fixture --model runs/portfolio-demo/hf \
+  --output runs/portfolio-demo/evaluation.json
+python demo.py --model runs/portfolio-demo/hf --port 7860
+```
+
+Open `http://127.0.0.1:7860`, upload `data/synthetic/images/red.png`, and ask `Describe the color.` Weights are generated locally; numerical results can vary slightly across environments.
+
+</details>
 
 ## Project overview
 
